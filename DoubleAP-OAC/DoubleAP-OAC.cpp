@@ -4,6 +4,7 @@
 #include <sstream>
 #include <algorithm>
 #include <bitset>
+#include <limits>
 
 using namespace std;
 
@@ -45,17 +46,24 @@ void decimal_to_dfp(string d)
 	string			signal;
 	string			exponent;
 	ostringstream	mantissa;
-
-	string tmp = d;
+	double			decimal;
 
 	signal = d.front() == '-' ? "1" : "0";
 
-	auto decimal = d.front() == '-' ? stod(tmp.erase(0, 1)) : stod(d);
+	if (d == "inf" || d == "-inf")
+	{
+		decimal = numeric_limits<double>::max();
+	}
+	else {
+		decimal = abs(stod(d));
+	}
+
+	cout << decimal << endl;
 
 	if (decimal == 0)
 	{
 		its_a_trap(signal, d);
-	}
+	} 
 	else
 	{
 		int exp = 0;
