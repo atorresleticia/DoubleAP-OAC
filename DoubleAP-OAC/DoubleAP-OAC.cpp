@@ -214,19 +214,23 @@ void dfp_to_decimal(string b)
 		}
 	}
 
-	cout << signal << mantissa << endl;
+	cout << "Decimal: " << signal << mantissa << endl << endl;
 }
 
 int main(int argc, char **argv)
 {
-	/*if (argc != 2)
+	/*
+	if (argc != 2)
 	{
 		cout << "Número de parametros errado" << endl;
 		return(1);
-	}*/
+	}
 
-	string entry;// = argv[1];
+	string entry = argv[1];
+	*/
 
+	string entry;
+	
 	while (true)
 	{
 		cin >> entry;
