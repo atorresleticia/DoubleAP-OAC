@@ -5,24 +5,71 @@
 #include <algorithm>
 #include <bitset>
 #include <limits>
+#include <regex>
 
 using namespace std;
 
-void its_a_trap(string signal, string d)
+void zero(string signal, string d)
 {
 	cout << "Number: " << d << endl;
 	signal == "0" ? cout << "0x0000000000000000" << endl : cout << "0x8000000000000000" << endl;
 
 	cout << signal << " | ";
+
 	for (auto i = 0; i < 11; i++)
 	{
 		cout << "0";
 	}
 
 	cout << " | ";
+
 	for (auto i = 0; i < 52; i++)
 	{
 		cout << "0";
+	}
+
+	cout << endl << endl;
+}
+
+void infinity(string signal)
+{
+	cout << "Infinity" << endl;
+	signal == "0" ? cout << "0x7FF0000000000000" << endl : cout << "0xFFF0000000000000" << endl;
+
+	cout << signal << " | ";
+
+	for (auto i = 0; i < 11; i++)
+	{
+		cout << "1";
+	}
+
+	cout << " | ";
+
+	for (auto i = 0; i < 52; i++)
+	{
+		cout << "0";
+	}
+
+	cout << endl << endl;
+}
+
+void not_a_number()
+{
+	cout << "NaN" << endl;
+	cout << "0x7FFFFFFFFFFFFFFF" << endl;
+
+	cout << "0 | ";
+
+	for (auto i = 0; i < 11; i++)
+	{
+		cout << "1";
+	}
+
+	cout << " | ";
+
+	for (auto i = 0; i < 52; i++)
+	{
+		cout << "1";
 	}
 
 	cout << endl << endl;
@@ -41,85 +88,92 @@ string exponent_to_bin(int n)
 	return aux;
 }
 
+void print_dfp(string signal, string exponent, string mantissa)
+{
+	stringstream hex_out;
+	bitset<64> set(signal + exponent + mantissa);
+	hex_out << hex << uppercase << set.to_ullong();
+
+	cout << "0x" << hex_out.str() << endl;
+	cout << signal << " | " << exponent << " | " << mantissa << endl << endl;
+}
+
 void decimal_to_dfp(string d)
 {
 	string			signal;
 	string			exponent;
 	ostringstream	mantissa;
 	double			decimal;
+	regex			nan("[a-zA-Z]+");
 
 	signal = d.front() == '-' ? "1" : "0";
-
-	if (d == "inf" || d == "-inf")
+	
+	if (d == "infinity" || d == "-infinity")
 	{
-		decimal = numeric_limits<double>::max();
+		infinity(signal);
+		//decimal = pow(2, 1023);
 	}
-	else {
-		decimal = abs(stod(d));
-	}
-
-	cout << decimal << endl;
-
-	if (decimal == 0)
+	else if (regex_match(d, nan))
 	{
-		its_a_trap(signal, d);
-	} 
+		not_a_number();
+		//decimal = numeric_limits<double>::max(); //(1 + (1 - pow(2, -52))) * pow(2, 1023);
+	}
 	else
 	{
-		int exp = 0;
-		double aux;
-		double fract;
+		decimal = abs(stod(d));
 
-		// normalize
-		if (decimal > 0 && decimal < 1)
+		if (decimal == 0)
 		{
-			fract = modf(decimal, &aux);
-			while (aux == 0)
-			{
-				fract *= 2;
-				fract = modf(fract, &aux);
-				exp++;
-			}
-			exp *= -1;
-			decimal = fract;
+			zero(signal, d);
 		}
 		else
 		{
-			while (decimal >= 2)
+			int exp_count = 0;
+			double aux;
+			double fract_part;
+
+			if (decimal > 0 && decimal < 1)
 			{
-				decimal /= 2;
-				exp++;
+				fract_part = modf(decimal, &aux);
+				while (aux == 0)
+				{
+					fract_part *= 2;
+					fract_part = modf(fract_part, &aux);
+					exp_count++;
+				}
+				exp_count *= -1;
+				decimal = fract_part;
 			}
+			else
+			{
+				while (decimal >= 2)
+				{
+					decimal /= 2;
+					exp_count++;
+				}
+			}
+
+			exponent = exponent_to_bin(exp_count + 1023);
+
+			double int_part;
+			int filled_bits = 0;
+			fract_part = modf(decimal, &int_part);
+
+			while (fract_part != 0)
+			{
+				fract_part *= 2;
+				fract_part = modf(fract_part, &int_part);
+				mantissa << static_cast<int>(int_part);
+				filled_bits++;
+			}
+
+			for (auto i = 0; i < 52 - filled_bits; i++)
+			{
+				mantissa << '0';
+			}
+
+			print_dfp(signal, exponent, mantissa.str());
 		}
-
-		exponent = exponent_to_bin(exp + 1023);
-
-		double int_part;
-		int filled_bits = 0;
-		fract = modf(decimal, &aux);
-
-		while (fract != 0)
-		{
-			fract *= 2;
-			fract = modf(fract, &int_part);
-			mantissa << static_cast<int>(int_part);
-			filled_bits++;
-		}
-
-		for (auto i = 0; i < 52 - filled_bits; i++)
-		{
-			mantissa << '0';
-		}
-
-		string res = signal + exponent + mantissa.str();
-		stringstream hex_out;
-
-		bitset<64> set(res);
-		hex_out << hex << uppercase << set.to_ullong();
-
-		cout << "Number: " << d << endl;
-		cout << "0x" << hex_out.str() << endl;
-		cout << signal << " | " << exponent << " | " << mantissa.str() << endl << endl;
 	}
 }
 
@@ -129,9 +183,9 @@ void dfp_to_decimal(string b)
 	int		exponent = 0;
 	double	mantissa = 0;
 
-	signal = b.front() == '0' ? ' ' : '-';
+	signal = b.front() == '0' ? "" : "-";
 
-		for (auto i = 1; i < 12; i++)
+	for (auto i = 1; i < 12; i++)
 	{
 		exponent += (b[i] - 48) * pow(2.0, 11 - i);
 	}
@@ -167,11 +221,11 @@ int main(int argc, char **argv)
 {
 	/*if (argc != 2)
 	{
-	cout << "Número de parametros errado" << endl;
-	return(1);
+		cout << "Número de parametros errado" << endl;
+		return(1);
 	}*/
 
-	string entry;// { argv[1] };
+	string entry;// = argv[1];
 
 	while (true)
 	{
@@ -186,6 +240,7 @@ int main(int argc, char **argv)
 			decimal_to_dfp(entry);
 		}
 	}
+	
 
 	return 0;
 }
