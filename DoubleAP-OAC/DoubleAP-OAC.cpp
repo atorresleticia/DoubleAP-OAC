@@ -9,92 +9,47 @@
 
 using namespace std;
 
-void zero(string signal, string d)
+void zero(string signal)
 {
-	cout << "Number: " << d << endl;
 	signal == "0" ? cout << "0x0000000000000000" << endl : cout << "0x8000000000000000" << endl;
 
-	cout << signal << " | ";
-
-	for (auto i = 0; i < 11; i++)
-	{
-		cout << "0";
-	}
-
-	cout << " | ";
-
-	for (auto i = 0; i < 52; i++)
-	{
-		cout << "0";
-	}
-
-	cout << endl << endl;
+	cout << signal << " | " << "0000000000" << " | "
+		<< "000000000000000000000000000000000000000000000000000\n\n";
 }
 
 void infinity(string signal)
 {
-	cout << "Infinity" << endl;
 	signal == "0" ? cout << "0x7FF0000000000000" << endl : cout << "0xFFF0000000000000" << endl;
 
-	cout << signal << " | ";
-
-	for (auto i = 0; i < 11; i++)
-	{
-		cout << "1";
-	}
-
-	cout << " | ";
-
-	for (auto i = 0; i < 52; i++)
-	{
-		cout << "0";
-	}
-
-	cout << endl << endl;
+	cout << signal << " | " << "1111111111" << " | "
+		<< "000000000000000000000000000000000000000000000000000\n\n";
 }
 
 void not_a_number()
 {
-	cout << "NaN" << endl;
 	cout << "0x7FFFFFFFFFFFFFFF" << endl;
 
-	cout << "0 | ";
-
-	for (auto i = 0; i < 11; i++)
-	{
-		cout << "1";
-	}
-
-	cout << " | ";
-
-	for (auto i = 0; i < 52; i++)
-	{
-		cout << "1";
-	}
-
-	cout << endl << endl;
+	cout << "0 | " << "1111111111" << " | "
+		<< "111111111111111111111111111111111111111111111111111\n\n";
 }
 
 string exponent_to_bin(int n)
 {
 	ostringstream out;
-	for (auto i = 0; i < 11; i++)
+
+	for (auto i = 0x400; i != 0; i >>= 1)
 	{
-		out << n % 2;
-		n >>= 1;
+		out << ((n & i) == 0 ? 0 : 1);
 	}
-	string aux = out.str();
-	reverse(aux.begin(), aux.end());
-	return aux;
+
+	return out.str();
 }
 
 void print_dfp(string signal, string exponent, string mantissa)
 {
-	stringstream hex_out;
 	bitset<64> set(signal + exponent + mantissa);
-	hex_out << hex << uppercase << set.to_ullong();
 
-	cout << "0x" << hex_out.str() << endl;
+	cout << "0x" << hex << uppercase << set.to_ullong() << endl;
 	cout << signal << " | " << exponent << " | " << mantissa << endl << endl;
 }
 
@@ -124,11 +79,11 @@ void decimal_to_dfp(string d)
 
 		if (decimal == 0)
 		{
-			zero(signal, d);
+			zero(signal);
 		}
 		else
 		{
-			int exp_count = 0;
+			auto exp_count = 0;
 			double aux;
 			double fract_part;
 
@@ -141,7 +96,7 @@ void decimal_to_dfp(string d)
 					fract_part = modf(fract_part, &aux);
 					exp_count++;
 				}
-				exp_count *= -1;
+				exp_count = -exp_count;
 				decimal = fract_part;
 			}
 			else
@@ -156,7 +111,7 @@ void decimal_to_dfp(string d)
 			exponent = exponent_to_bin(exp_count + 1023);
 
 			double int_part;
-			int filled_bits = 0;
+			auto filled_bits = 0;
 			fract_part = modf(decimal, &int_part);
 
 			while (fract_part != 0)
@@ -180,8 +135,8 @@ void decimal_to_dfp(string d)
 void dfp_to_decimal(string b)
 {
 	string	signal;
-	int		exponent = 0;
-	double	mantissa = 0;
+	auto exponent = -1023;
+	auto mantissa = 1.0;
 
 	signal = b.front() == '0' ? "" : "-";
 
@@ -190,14 +145,10 @@ void dfp_to_decimal(string b)
 		exponent += (b[i] - 48) * pow(2.0, 11 - i);
 	}
 
-	exponent -= 1023;
-
 	for (auto i = 12; i < 65; i++)
 	{
 		mantissa += (b[i] - 48) * pow(2.0, 12 - (i + 1));
 	}
-	
-	mantissa += 1;
 
 	if (exponent < 0)
 	{
@@ -219,23 +170,12 @@ void dfp_to_decimal(string b)
 
 int main(int argc, char **argv)
 {
-	/*
-	if (argc != 2)
-	{
-		cout << "Número de parametros errado" << endl;
-		return(1);
-	}
-
-	string entry = argv[1];
-	*/
-
 	string entry;
 	
-	while (true)
+	while (cin >> entry)
 	{
-		cin >> entry;
-
-		if (entry.back() == 'B' || entry.back() == 'b')
+		transform(entry.begin(), entry.end(), entry.begin(), ::tolower);
+		if (entry.back() == 'b')
 		{
 			dfp_to_decimal(entry);
 		}
